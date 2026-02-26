@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>M&P 2026 骐骥驰骋</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            overflow: hidden;
+            background: #000;
+            font-family: 'Microsoft YaHei', sans-serif;
+        }
+
+        #canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        .content {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            text-align: center;
+            pointer-events: none;
+        }
+
+        .main-text {
+            font-size: 8vw;
+            font-weight: 900;
+            background: linear-gradient(
+                45deg,
+                #ff006e,
+                #8338ec,
+                #3a86ff,
+                #06ffa5,
+                #ffbe0b,
+                #ff006e
+            );
+            background-size: 400% 400%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: gradientShift 5s ease infinite;
+            text-shadow: 
+                0 0 30px rgba(255, 0, 110, 0.5),
+                0 0 60px rgba(131, 56, 236, 0.3),
+                0 0 90px rgba(58, 134, 255, 0.2);
+            letter-spacing: 0.1em;
+            white-space: nowrap;
+        }
+
+        .sub-text {
+            font-size: 3vw;
+            color: #fff;
+            margin-top: 20px;
+            text-shadow: 
+                0 0 10px rgba(255, 255, 255, 0.8),
+                0 0 20px rgba(255, 255, 255, 0.5),
+                0 0 30px rgba(255, 255, 255, 0.3);
+            animation: pulse 2s ease-in-out infinite;
+            letter-spacing: 0.3em;
+        }
+
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 5;
+            pointer-events: none;
+        }
+
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.8; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.05); }
+        }
+
+        .glow {
+            position: absolute;
+            width: 600px;
+            height: 600px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(131, 56, 236, 0.3) 0%, transparent 70%);
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 2;
+            animation: rotate 20s linear infinite;
+        }
+
+        @keyframes rotate {
+            from { transform: translate(-50%, -50%) rotate(0deg); }
+            to { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    <div class="glow"></div>
+    <canvas class="particles" id="particles"></canvas>
+    
+    <div class="content">
+        <div class="main-text">M&P 2026</div>
+        <div class="sub-text">骐骥驰骋</div>
+    </div>
+
+    <script>
+        // 迷宫画布
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // 粒子画布
+        const pCanvas = document.getElementById('particles');
+        const pCtx = pCanvas.getContext('2d');
+        
+        let width, height;
+        let maze = [];
+        let cellSize = 30;
+        let cols, rows;
+        
+        // 颜色方案
+        const colors = [
+            '#ff006e', '#8338ec', '#3a86ff', '#06ffa5', '#ffbe0b'
+        ];
+        
+        function resize() {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
+            pCanvas.width = width;
+            pCanvas.height = height;
+            
+            cols = Math.ceil(width / cellSize) + 2;
+            rows = Math.ceil(height / cellSize) + 2;
+            generateMaze();
+        }
+        
+        function generateMaze() {
+            maze = [];
+            for (let i = 0; i < rows; i++) {
+                maze[i] = [];
+                for (let j = 0; j < cols; j++) {
+                    maze[i][j] = {
+                        top: Math.random() > 0.5,
+                        right: Math.random() > 0.5,
+                        bottom: Math.random() > 0.5,
+                        left: Math.random() > 0.5,
+                        visited: false,
+                        color: colors[Math.floor(Math.random() * colors.length)]
+                    };
+                }
+            }
+        }
+        
+        let offsetX = 0;
+        let offsetY = 0;
+        let time = 0;
+        
+        function drawMaze() {
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, width, height);
+            
+            offsetX = Math.sin(time * 0.001) * 50;
+            offsetY = Math.cos(time * 0.001) * 50;
+            
+            for (let i = 0; i < rows; i++) {
+                for (let j = 0; j < cols; j++) {
+                    const cell = maze[i][j];
+                    const x = j * cellSize + offsetX;
+                    const y = i * cellSize + offsetY;
+                    
+                    ctx.strokeStyle = cell.color;
+                    ctx.lineWidth = 2;
+                    ctx.globalAlpha = 0.3 + Math.sin(time * 0.002 + i + j) * 0.2;
+                    
+                    ctx.beginPath();
+                    if (cell.top) {
+                        ctx.moveTo(x, y);
+                        ctx.lineTo(x + cellSize, y);
+                    }
+                    if (cell.right) {
+                        ctx.moveTo(x + cellSize, y);
+                        ctx.lineTo(x + cellSize, y + cellSize);
+                    }
+                    if (cell.bottom) {
+                        ctx.moveTo(x + cellSize, y + cellSize);
+                        ctx.lineTo(x, y + cellSize);
+                    }
+                    if (cell.left) {
+                        ctx.moveTo(x, y + cellSize);
+                        ctx.lineTo(x, y);
+                    }
+                    ctx.stroke();
+                    
+                    // 发光点
+                    if (Math.random() > 0.99) {
+                        ctx.fillStyle = cell.color;
+                        ctx.globalAlpha = 0.8;
+                        ctx.beginPath();
+                        ctx.arc(x + cellSize/2, y + cellSize/2, 3, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
+            }
+            ctx.globalAlpha = 1;
+        }
+        
+        // 粒子系统
+        const particles = [];
+        const particleCount = 100;
+        
+        class Particle {
+            constructor() {
+                this.reset();
+            }
+            
+            reset() {
+                this.x = Math.random() * width;
+                this.y = Math.random() * height;
+                this.size = Math.random() * 3 + 1;
+                this.speedX = (Math.random() - 0.5) * 2;
+                this.speedY = (Math.random() - 0.5) * 2;
+                this.color = colors[Math.floor(Math.random() * colors.length)];
+                this.life = 1;
+                this.decay = Math.random() * 0.01 + 0.005;
+            }
+            
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                this.life -= this.decay;
+                
+                if (this.life <= 0 || this.x < 0 || this.x > width || this.y < 0 || this.y > height) {
+                    this.reset();
+                }
+            }
+            
+            draw() {
+                pCtx.fillStyle = this.color;
+                pCtx.globalAlpha = this.life;
+                pCtx.beginPath();
+                pCtx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                pCtx.fill();
+                
+                // 光晕
+                pCtx.globalAlpha = this.life * 0.3;
+                pCtx.beginPath();
+                pCtx.arc(this.x, this.y, this.size * 3, 0, Math.PI * 2);
+                pCtx.fill();
+            }
+        }
+        
+        for (let i = 0; i < particleCount; i++) {
+            particles.push(new Particle());
+        }
+        
+        function drawParticles() {
+            pCtx.clearRect(0, 0, width, height);
+            
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+            
+            pCtx.globalAlpha = 1;
+        }
+        
+        function animate() {
+            time++;
+            drawMaze();
+            drawParticles();
+            requestAnimationFrame(animate);
+        }
+        
+        window.addEventListener('resize', resize);
+        resize();
+        animate();
+    </script>
+</body>
+</html>
